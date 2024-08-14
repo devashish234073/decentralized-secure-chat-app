@@ -72,6 +72,7 @@
                                 "nodev=$(node -v)\n",
                                 "git clone https://github.com/devashish234073/decentralized-secure-chat-app\n",
                                 "cd decentralized-secure-chat-app\n",
+                                "openssl req -nodes -new -x509 -keyout server.key -out server.cert -days 365 -subj \"/C=US/ST=State/L=City/O=Organization/OU=OrgUnit/CN=example.com\"\n",
                                 "npm install\n",
                                 "node server.js&\n",
                                 "cd ..\n",
