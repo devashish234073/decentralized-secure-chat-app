@@ -3,6 +3,8 @@ const crypto = require('crypto');
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const https = require('https');
+const fs = require('fs');
 let PORT = 9999;
 const app = express();
 const encdec = require("./public/enc-dec");
@@ -34,9 +36,21 @@ let tmr = setInterval(() => {
 }, 100);
 async function init() {
     console.log("enc-dec", await encdec.decrypt(await encdec.encrypt("Test Enc Dec From Server", keys.publicKey), keys.privateKey));
-    app.listen(PORT, () => {
-        console.log(`App is listening at http://localhost:${PORT}`);
-    });
+    const keyPath = path.join(__dirname, 'server.key');
+    const certPath = path.join(__dirname, 'server.cert');
+    if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+        const options = {
+            key: fs.readFileSync('server.key'),
+            cert: fs.readFileSync('server.cert')
+        };
+        https.createServer(options, app).listen(PORT, () => {
+            console.log(`Server running on https://localhost:${PORT}`);
+        })
+    } else {
+        app.listen(PORT, () => {
+            console.log(`App is listening at http://localhost:${PORT}`);
+        });
+    }
 }
 
 let uiPublicKey = null;
