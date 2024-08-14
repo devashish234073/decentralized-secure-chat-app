@@ -18,10 +18,8 @@ async function generateKeyPair(keyObj) {
 }
 
 let primaryKeys = {"publicKey":null, "privateKey":null, "publicKeyBase64":null, "privateKeyBase64":null};
-let communicationKeys = {"publicKey":null, "privateKey":null, "publicKeyBase64":null, "privateKeyBase64":null};
 
 generateKeyPair(primaryKeys);
-generateKeyPair(communicationKeys);
 
 function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -104,11 +102,19 @@ function getKeys() {
     return primaryKeys;
 }
 
+let communicationKeys = {"publicKey":null, "privateKey":null, "publicKeyBase64":null, "privateKeyBase64":null};
+
+function getCommunicationKeys() {
+    return communicationKeys;
+}
+
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
+    generateKeyPair(communicationKeys);
     module.exports = {
         encrypt,
         decrypt,
         getKeys,
-        deletePublicKey
+        deletePublicKey,
+        getCommunicationKeys
     };
 }
