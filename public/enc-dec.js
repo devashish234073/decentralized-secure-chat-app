@@ -1,5 +1,4 @@
-let publicKey, privateKey, publicKeyBase64, privateKeyBase64;
-async function generateKeyPair() {
+async function generateKeyPair(keyObj) {
     const keyPair = await crypto.subtle.generateKey(
         {
             name: "RSA-OAEP",
@@ -11,13 +10,16 @@ async function generateKeyPair() {
         ["encrypt", "decrypt"]
     );
 
-    publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-    privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+    keyObj.publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+    keyObj.privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
 
-    publicKeyBase64 = arrayBufferToBase64(publicKey);
-    privateKeyBase64 = arrayBufferToBase64(privateKey);
+    keyObj.publicKeyBase64 = arrayBufferToBase64(keyObj.publicKey);
+    keyObj.privateKeyBase64 = arrayBufferToBase64(keyObj.privateKey);
 }
-generateKeyPair();
+
+let primaryKeys = {"publicKey":null, "privateKey":null, "publicKeyBase64":null, "privateKeyBase64":null};
+
+generateKeyPair(primaryKeys);
 
 function arrayBufferToBase64(buffer) {
     let binary = '';
@@ -97,7 +99,7 @@ async function getPrivateKeyToUse(privateKeyArg) {
 }
 
 function getKeys() {
-    return {"publicKey":publicKey, "privateKey":privateKey, "publicKeyBase64":publicKeyBase64, "privateKeyBase64":privateKeyBase64};
+    return primaryKeys;
 }
 
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
