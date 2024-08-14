@@ -86,7 +86,7 @@
                                 "<h1>UI setup done</h1>\n",
                                 "<p>Git Installed: $gitv<p>\n",
                                 "<p>Node Installed: $nodev<p>\n",
-                                "<a href=\"http://${public_ip}:9999/index.html\">Click Here To Launch Secure Chat App</a>\n",
+                                "<a href=\"https://${public_ip}:9999/index.html\">Click Here To Launch Secure Chat App</a>\n",
                                 "</body>\n",
                                 "</html>\n",
                                 "EOF\n",
