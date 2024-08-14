@@ -42,13 +42,14 @@ async function init() {
 let uiPublicKey = null;
 app.get('/publicKey', (req, res) => {
     console.log(req.query.uiPublicKey);
+    let publicKeyRef = "";
     if (!uiPublicKey) {
         uiPublicKey = req.query.uiPublicKey;
-    } else {
+        publicKeyRef = keys.publicKeyBase64;
         encdec.deletePublicKey();
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(`{"publicKey":"${keys.publicKeyBase64}"}`);
+    res.end(`{"publicKey":"${publicKeyRef}"}`);
 });
 
 app.post("/send-message", async (req, res) => {
