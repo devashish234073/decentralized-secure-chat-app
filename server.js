@@ -98,7 +98,8 @@ app.post("/send-message", async (req, res) => {
                 if(resp.communicationPublicKey) {
                     try {
                         let messageEncryptedUsingRecipientPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(resp.communicationPublicKey));
-                        res.end(`{"message":"ok ${messageEncryptedUsingRecipientPublicKey}"}`);
+                        const msg_Send_resp = JSON.parse(await restcalls.makePostCall(https, host, port, "/send-message-to-peer",{"message":messageEncryptedUsingRecipientPublicKey}));
+                        res.end(`{"message":"ok ${msg_Send_resp}"}`);
                     } catch(error) {
                         res.end(`{"message":"Unable to encrypt using receipients public key '${error}'"}`);
                     }
@@ -132,6 +133,7 @@ app.post("/send-message-to-peer", async (req, res) => {
         } else {
             console.log("decrypting", message);
             let decryptedMessage = await encdec.decrypt(message, encdec.getCommunicationKeys().privateKey);
+            console.log("decryptedMessage received",decryptedMessage);
             let messageEncryptedUsingUIPublicKey = await encdec.encrypt(message, encdec.base64ToArrayBuffer(uiPublicKey));
             if(messages[sender]) {
                 messages[sender].push(messageEncryptedUsingUIPublicKey);
