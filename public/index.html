@@ -169,7 +169,7 @@
         let publicKeyFromServer = null;
         async function getPublicKeyFromServer(uiPublicKey) {
             try {
-                const response = await fetch('/publicKey?uiPublicKey=' + uiPublicKey);
+                const response = await fetch('/exchangePublicKey?uiPublicKey=' + uiPublicKey);
                 if (response.ok) {
                     const result = await response.json();
                     if (result.publicKey != "") {

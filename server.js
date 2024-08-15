@@ -54,7 +54,7 @@ async function init() {
 }
 
 let uiPublicKey = null;
-app.get('/publicKey', (req, res) => {
+app.get('/exchangePublicKey', (req, res) => {
     console.log(req.query.uiPublicKey);
     let publicKeyRef = "";
     if (!uiPublicKey) {
