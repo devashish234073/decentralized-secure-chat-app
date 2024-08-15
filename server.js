@@ -134,7 +134,7 @@ app.post("/send-message-to-peer", async (req, res) => {
             console.log("decrypting", message);
             let decryptedMessage = await encdec.decrypt(message, encdec.getCommunicationKeys().privateKey);
             console.log("decryptedMessage received",decryptedMessage);
-            let messageEncryptedUsingUIPublicKey = await encdec.encrypt(message, encdec.base64ToArrayBuffer(uiPublicKey));
+            let messageEncryptedUsingUIPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(uiPublicKey));
             if(messages[sender]) {
                 messages[sender].push(messageEncryptedUsingUIPublicKey);
             } else {
