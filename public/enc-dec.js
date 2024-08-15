@@ -115,6 +115,7 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
         decrypt,
         getKeys,
         deletePublicKey,
-        getCommunicationKeys
+        getCommunicationKeys,
+        base64ToArrayBuffer
     };
 }
