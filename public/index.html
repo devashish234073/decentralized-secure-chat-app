@@ -123,6 +123,14 @@
         function _(tag) {
             return document.createElement(tag);
         }
+        let msgType = {};
+        let messagesRestructured = {};
+        let recipients = $("#recipients");
+        let onRecipientChange = ()=>{
+            let msgs = messagesRestructured[recipients.value];
+            
+        };
+        recipients.addEventListener("change",onRecipientChange);
 
         async function send() {
             const message = $("#message").value;
@@ -179,31 +187,40 @@
                 });
 
                 if (response.ok) {
-                    let allRecipients = [];
                     const result = await response.json();
+                    messagesRestructured = {};
                     for (let recipient in result.sent) {
                         let sent = result.sent[recipient];
                         let received = result.received[recipient];
-                        if(allRecipients.indexOf(recipient)==-1) {
-                            allRecipients.push(recipient);
-                        }
                         for(let msgIndx in sent) {
                             let msg = sent[msgIndx];
-                            console.log("sent by "+recipient,msg);
+                            msgType[msg] = "sent";
+                            if(!messagesRestructured[recipient]) {
+                                messagesRestructured[recipient] = [msg];
+                            } else {
+                                messagesRestructured[recipient].push(msg);
+                            }
                         }
                         for(let msgIndx in received) {
                             let msg = received[msgIndx];
-                            console.log("received from "+recipient,msg);
+                            msgType[msg] = "received";
+                            if(!messagesRestructured[recipient]) {
+                                messagesRestructured[recipient] = [msg];
+                            } else {
+                                messagesRestructured[recipient].push(msg);
+                            }
                         }
                     }
                     let recipients = $("#recipients");
                     recipients.options.length = 0;
-                    for(let rIndx=0;rIndx<allRecipients.length;rIndx++) {
+                    console.log(messagesRestructured);
+                    for(let recip in messagesRestructured) {
                         let option = _("option");
-                        option.innerText = allRecipients[rIndx];
-                        option.value = allRecipients[rIndx];
+                        option.innerText = recip;
+                        option.value = recip;
                         recipients.appendChild(option);
                     }
+                    onRecipientChange();
                 } else {
                     console.log('Failed to get all the messages.');
                     window.location.reload();
