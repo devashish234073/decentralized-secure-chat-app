@@ -55,7 +55,8 @@
             margin-top: 10px;
         }
 
-        select, button {
+        select,
+        button {
             flex: 1;
             padding: 15px;
             font-size: 18px;
@@ -126,11 +127,36 @@
         let msgType = {};
         let messagesRestructured = {};
         let recipients = $("#recipients");
-        let onRecipientChange = ()=>{
+        let onRecipientChange = async () => {
             let msgs = messagesRestructured[recipients.value];
-            
+            msgs.sort((a, b) => a[0] - b[0]);
+            $("#result2").innerHTML = "";
+            for (let msgI = 0; msgI < msgs.length; msgI++) {
+                let msg = msgs[msgI];
+                if (!msg) {
+                    continue;
+                }
+                let h3 = _("h3");
+                let pre = _("pre");
+                let messageBy = "";
+                if (msgType[msg[1]] == "sent") {
+                    messageBy = "[You] ";
+                } else {
+                    messageBy = "[" + recipients.value + "] ";
+                }
+                h3.innerText = messageBy + (new Date(msg[0]));
+                try {
+                    let decryptedMsg = await decrypt(msg[1], keys.privateKey);
+                    pre.innerText = decryptedMsg;
+                } catch (error) {
+                    console.log(error);
+                    pre.innerText = error;
+                }
+                $("#result2").appendChild(h3);
+                $("#result2").appendChild(pre);
+            }
         };
-        recipients.addEventListener("change",onRecipientChange);
+        recipients.addEventListener("change", onRecipientChange);
 
         async function send() {
             const message = $("#message").value;
@@ -192,19 +218,19 @@
                     for (let recipient in result.sent) {
                         let sent = result.sent[recipient];
                         let received = result.received[recipient];
-                        for(let msgIndx in sent) {
+                        for (let msgIndx in sent) {
                             let msg = sent[msgIndx];
-                            msgType[msg] = "sent";
-                            if(!messagesRestructured[recipient]) {
+                            msgType[msg[1]] = "sent";
+                            if (!messagesRestructured[recipient]) {
                                 messagesRestructured[recipient] = [msg];
                             } else {
                                 messagesRestructured[recipient].push(msg);
                             }
                         }
-                        for(let msgIndx in received) {
+                        for (let msgIndx in received) {
                             let msg = received[msgIndx];
-                            msgType[msg] = "received";
-                            if(!messagesRestructured[recipient]) {
+                            msgType[msg[1]] = "received";
+                            if (!messagesRestructured[recipient]) {
                                 messagesRestructured[recipient] = [msg];
                             } else {
                                 messagesRestructured[recipient].push(msg);
@@ -214,7 +240,7 @@
                     let recipients = $("#recipients");
                     recipients.options.length = 0;
                     console.log(messagesRestructured);
-                    for(let recip in messagesRestructured) {
+                    for (let recip in messagesRestructured) {
                         let option = _("option");
                         option.innerText = recip;
                         option.value = recip;
@@ -289,6 +315,14 @@
             if (getKeys) {
                 keys = getKeys();
                 if (keys && keys.publicKey) {
+                    let cachedUIKeys = sessionStorage.getItem("cachedUIKeys");
+                    if (cachedUIKeys == null) {
+                        sessionStorage.setItem("cachedUIKeys", JSON.stringify(keys));
+                    } else {
+                        keys = JSON.parse(cachedUIKeys);
+                        keys.publicKey = base64ToArrayBuffer(keys.publicKeyBase64);
+                        keys.privateKey = base64ToArrayBuffer(keys.privateKeyBase64);
+                    }
                     init();
                     clearInterval(tmr);
                 }
