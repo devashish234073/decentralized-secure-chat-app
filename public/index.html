@@ -148,7 +148,12 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert(result.message);
+                    console.log(result.message);
+                    if(result.message && result.message.indexOf("ok")==0) {
+                        alert("message sent..");
+                        $("#message").value = "";
+                        $("#encryptedMessage").innerHTML = "";
+                    }
                 } else {
                     alert('Failed to send the message. Please try again later.');
                 }
@@ -169,7 +174,16 @@
         let publicKeyFromServer = null;
         async function getPublicKeyFromServer(uiPublicKey) {
             try {
-                const response = await fetch('/exchangePublicKey?uiPublicKey=' + uiPublicKey);
+                const payload = {
+                    "uiPublicKey": uiPublicKey
+                };
+                const response = await fetch('/exchangePublicKey', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
                 if (response.ok) {
                     const result = await response.json();
                     if (result.publicKey != "") {

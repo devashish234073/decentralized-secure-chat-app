@@ -57,17 +57,19 @@ async function init() {
 }
 
 let uiPublicKey = null;
-app.get('/exchangePublicKey', (req, res) => {
-    console.log(req.query.uiPublicKey);
+app.post('/exchangePublicKey', (req, res) => {
     let publicKeyRef = "";
     if (!uiPublicKey) {
-        uiPublicKey = req.query.uiPublicKey;
+        uiPublicKey = req.body.uiPublicKey;
+        console.log("uiPublicKey", uiPublicKey);
         publicKeyRef = keys.publicKeyBase64;
         encdec.deletePublicKey();
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(`{"publicKey":"${publicKeyRef}"}`);
 });
+
+let messages = { "sent": {}, "received": {} };
 
 app.post("/send-message", async (req, res) => {
     let message = req.body.message;
@@ -89,18 +91,28 @@ app.post("/send-message", async (req, res) => {
                     host = destinationSplit[0];
                     port = parseInt(destinationSplit[1]);
                 } else {
-                    throw Error("Invalid destination ==> "+destination);
+                    throw Error("Invalid destination ==> " + destination);
                 }
             }
             try {
                 const resp = JSON.parse(await restcalls.makeGetCall(https, host, port, "/getCommunicationPublicKey"));
-                console.log("resp",resp);
-                if(resp.communicationPublicKey) {
+                console.log("resp", resp);
+                if (resp.communicationPublicKey) {
                     try {
+                        let messageEncryptedUsingUIPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(uiPublicKey));
+                        let hostProcessed = processAddress(host);
+                        let date = new Date();
+                        let messageObj = {};
+                        messageObj[date.getTime()] = messageEncryptedUsingUIPublicKey;
+                        if (!messages["sent"][hostProcessed]) {
+                            messages["sent"][hostProcessed] = [messageObj];
+                        } else {
+                            messages["sent"][hostProcessed].push(messageObj);
+                        }
                         let messageEncryptedUsingRecipientPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(resp.communicationPublicKey));
-                        const msg_Send_resp = JSON.parse(await restcalls.makePostCall(https, host, port, "/send-message-to-peer",{"message":messageEncryptedUsingRecipientPublicKey}));
-                        res.end(`{"message":"ok ${msg_Send_resp}"}`);
-                    } catch(error) {
+                        const msg_Send_resp = await restcalls.makePostCall(https, host, port, "/send-message-to-peer", { "message": messageEncryptedUsingRecipientPublicKey });
+                        res.end(msg_Send_resp);
+                    } catch (error) {
                         res.end(`{"message":"Unable to encrypt using receipients public key '${error}'"}`);
                     }
                 } else {
@@ -122,28 +134,37 @@ app.get('/getCommunicationPublicKey', (req, res) => {
     res.end(`{"communicationPublicKey":"${communicationPublicKey}"}`);
 });
 
-let messages = {};
-
 app.post("/send-message-to-peer", async (req, res) => {
     let message = req.body.message;
-    let sender = req.socket.remoteAddress;
+    let sender = processAddress(req.socket.remoteAddress);
     try {
-        if(!uiPublicKey) {
+        if (!uiPublicKey) {
             res.end(`{"message":"recipient has not opened his app once"}`);
         } else {
             console.log("decrypting", message);
             let decryptedMessage = await encdec.decrypt(message, encdec.getCommunicationKeys().privateKey);
-            console.log("decryptedMessage received",decryptedMessage);
+            console.log("decryptedMessage received", decryptedMessage);
             let messageEncryptedUsingUIPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(uiPublicKey));
-            if(messages[sender]) {
-                messages[sender].push(messageEncryptedUsingUIPublicKey);
+            let date = new Date();
+            let messageObj = {};
+            messageObj[date.getTime()] = messageEncryptedUsingUIPublicKey;
+            if (messages["received"][sender]) {
+                messages["received"][sender].push(messageObj);
             } else {
-                messages[sender] = [messageEncryptedUsingUIPublicKey];
+                messages["received"][sender] = [messageObj];
             }
+            console.log(messages);
             res.end(`{"message":"ok ${sender}"}`);
         }
-    } catch(error) {
-        console.log("error receiving message from ",error);
+    } catch (error) {
+        console.log("error receiving message from ", error);
         res.end(`{"message":"error"}`);
     }
 });
+
+function processAddress(address) {
+    if (address.indexOf("127.0.0.1") > -1) {
+        return "localhost";
+    }
+    return address;
+}
