@@ -9,7 +9,9 @@ let PORT = 9999;
 const app = express();
 const encdec = require("./public/enc-dec");
 const restcalls = require("./restcalls");
-console.log(encdec);
+const log_enabled = true;
+let messages = { "sent": {}, "received": {} };
+log(encdec);
 
 const corsOptions = {
     origin: '*',
@@ -37,7 +39,7 @@ let tmr = setInterval(() => {
 }, 100);
 let protocol = "http://";
 async function init() {
-    console.log("enc-dec", await encdec.decrypt(await encdec.encrypt("Test Enc Dec From Server", keys.publicKey), keys.privateKey));
+    log("enc-dec", await encdec.decrypt(await encdec.encrypt("Test Enc Dec From Server", keys.publicKey), keys.privateKey));
     const keyPath = path.join(__dirname, 'server.key');
     const certPath = path.join(__dirname, 'server.cert');
     if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
@@ -47,11 +49,11 @@ async function init() {
         };
         https.createServer(options, app).listen(PORT, () => {
             protocol = "https://";
-            console.log(`Server running on https://localhost:${PORT}`);
+            log(`Server running on https://localhost:${PORT}`);
         })
     } else {
         app.listen(PORT, () => {
-            console.log(`App is listening at http://localhost:${PORT}`);
+            log(`App is listening at http://localhost:${PORT}`);
         });
     }
 }
@@ -61,7 +63,7 @@ app.post('/exchangePublicKey', (req, res) => {
     let publicKeyRef = "";
     if (!uiPublicKey) {
         uiPublicKey = req.body.uiPublicKey;
-        console.log("uiPublicKey", uiPublicKey);
+        log("uiPublicKey", uiPublicKey);
         publicKeyRef = keys.publicKeyBase64;
         encdec.deletePublicKey();
     }
@@ -69,11 +71,20 @@ app.post('/exchangePublicKey', (req, res) => {
     res.end(`{"publicKey":"${publicKeyRef}"}`);
 });
 
-let messages = { "sent": {}, "received": {} };
+app.post("/get-all-messages", async (req, res) => {
+    let message = req.body.message;
+    log("decrypting", message);
+    let decryptedMessage = await encdec.decrypt(message, keys.privateKey);
+    if (decryptedMessage == "i am the ui") {
+        res.end(JSON.stringify(messages));
+    } else {
+        res.end(`{"message":"you are not the legitimate ui"}`);
+    }
+});
 
 app.post("/send-message", async (req, res) => {
     let message = req.body.message;
-    console.log("decrypting", message);
+    log("decrypting", message);
     let decryptedMessage = await encdec.decrypt(message, keys.privateKey);
     let destination = req.body.destination;
     if (!destination || destination == "") {
@@ -96,7 +107,7 @@ app.post("/send-message", async (req, res) => {
             }
             try {
                 const resp = JSON.parse(await restcalls.makeGetCall(https, host, port, "/getCommunicationPublicKey"));
-                console.log("resp", resp);
+                log("resp", resp);
                 if (resp.communicationPublicKey) {
                     try {
                         let messageEncryptedUsingUIPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(uiPublicKey));
@@ -129,7 +140,7 @@ app.post("/send-message", async (req, res) => {
 
 app.get('/getCommunicationPublicKey', (req, res) => {
     let communicationPublicKey = encdec.getCommunicationKeys().publicKeyBase64;
-    console.log(`sending communication key to ${req.socket.remoteAddress} port ${req.socket.remotePort}`);
+    log(`sending communication key to ${req.socket.remoteAddress} port ${req.socket.remotePort}`);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(`{"communicationPublicKey":"${communicationPublicKey}"}`);
 });
@@ -141,9 +152,9 @@ app.post("/send-message-to-peer", async (req, res) => {
         if (!uiPublicKey) {
             res.end(`{"message":"recipient has not opened his app once"}`);
         } else {
-            console.log("decrypting", message);
+            log("decrypting", message);
             let decryptedMessage = await encdec.decrypt(message, encdec.getCommunicationKeys().privateKey);
-            console.log("decryptedMessage received", decryptedMessage);
+            log("decryptedMessage received", decryptedMessage);
             let messageEncryptedUsingUIPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(uiPublicKey));
             let date = new Date();
             let messageObj = {};
@@ -153,11 +164,11 @@ app.post("/send-message-to-peer", async (req, res) => {
             } else {
                 messages["received"][sender] = [messageObj];
             }
-            console.log(messages);
+            log(messages);
             res.end(`{"message":"ok ${sender}"}`);
         }
     } catch (error) {
-        console.log("error receiving message from ", error);
+        log("error receiving message from ", error);
         res.end(`{"message":"error"}`);
     }
 });
@@ -167,4 +178,13 @@ function processAddress(address) {
         return "localhost";
     }
     return address;
+}
+
+function log(msg,param2) {
+    if (log_enabled) {
+        console.log((new Date()), msg);
+        if(param2) {
+            console.log((new Date()), param2);
+        }
+    }
 }
