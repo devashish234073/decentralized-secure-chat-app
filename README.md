@@ -1,3 +1,4 @@
 # decentralized-secure-chat-app
 
-![image](https://github.com/user-attachments/assets/c10375af-5987-473c-adf7-1ba12a61e7e6)
+![image](https://github.com/user-attachments/assets/44786565-404a-4eb1-914c-005080ede03a)
+
