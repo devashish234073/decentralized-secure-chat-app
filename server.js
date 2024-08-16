@@ -177,7 +177,7 @@ function processAddress(address) {
     if (address.indexOf("127.0.0.1") > -1) {
         return "localhost";
     }
-    return address;
+    return address.replace("::ffff:","");
 }
 
 function log(msg,param2) {
