@@ -55,7 +55,7 @@
             margin-top: 10px;
         }
 
-        button {
+        select, button {
             flex: 1;
             padding: 15px;
             font-size: 18px;
@@ -108,8 +108,7 @@
 
         <!-- Button row -->
         <div class="button-row">
-            <button>Encrypt</button>
-            <button onclick="fetchApi2()">Send Encrypted</button>
+            <select id="recipients"></select>
             <button onclick="send()">Send</button>
         </div>
 
@@ -180,10 +179,14 @@
                 });
 
                 if (response.ok) {
+                    let allRecipients = [];
                     const result = await response.json();
                     for (let recipient in result.sent) {
                         let sent = result.sent[recipient];
                         let received = result.received[recipient];
+                        if(allRecipients.indexOf(recipient)==-1) {
+                            allRecipients.push(recipient);
+                        }
                         for(let msgIndx in sent) {
                             let msg = sent[msgIndx];
                             console.log("sent by "+recipient,msg);
@@ -192,6 +195,14 @@
                             let msg = received[msgIndx];
                             console.log("received from "+recipient,msg);
                         }
+                    }
+                    let recipients = $("#recipients");
+                    recipients.options.length = 0;
+                    for(let rIndx=0;rIndx<allRecipients.length;rIndx++) {
+                        let option = _("option");
+                        option.innerText = allRecipients[rIndx];
+                        option.value = allRecipients[rIndx];
+                        recipients.appendChild(option);
                     }
                 } else {
                     console.log('Failed to get all the messages.');
