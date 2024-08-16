@@ -1,20 +1,24 @@
 async function generateKeyPair(keyObj) {
-    const keyPair = await crypto.subtle.generateKey(
-        {
-            name: "RSA-OAEP",
-            modulusLength: 2048,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: { name: "SHA-256" },
-        },
-        true,
-        ["encrypt", "decrypt"]
-    );
-
-    keyObj.publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-    keyObj.privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
-
-    keyObj.publicKeyBase64 = arrayBufferToBase64(keyObj.publicKey);
-    keyObj.privateKeyBase64 = arrayBufferToBase64(keyObj.privateKey);
+    try {
+        const keyPair = await crypto.subtle.generateKey(
+            {
+                name: "RSA-OAEP",
+                modulusLength: 2048,
+                publicExponent: new Uint8Array([1, 0, 1]),
+                hash: { name: "SHA-256" },
+            },
+            true,
+            ["encrypt", "decrypt"]
+        );
+    
+        keyObj.publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+        keyObj.privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+    
+        keyObj.publicKeyBase64 = arrayBufferToBase64(keyObj.publicKey);
+        keyObj.privateKeyBase64 = arrayBufferToBase64(keyObj.privateKey);
+    } catch(error) {
+        console.log("generateKeyPair Error",error);
+    }
 }
 
 let primaryKeys = {"publicKey":null, "privateKey":null, "publicKeyBase64":null, "privateKeyBase64":null};
