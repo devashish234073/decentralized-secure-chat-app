@@ -114,7 +114,7 @@ app.post("/send-message", async (req, res) => {
                         let hostProcessed = processAddress(host);
                         let date = new Date();
                         let messageObj = {};
-                        messageObj[date.getTime()] = messageEncryptedUsingUIPublicKey;
+                        messageObj = [date.getTime(),messageEncryptedUsingUIPublicKey];
                         if (!messages["sent"][hostProcessed]) {
                             messages["sent"][hostProcessed] = [messageObj];
                         } else {
@@ -158,7 +158,7 @@ app.post("/send-message-to-peer", async (req, res) => {
             let messageEncryptedUsingUIPublicKey = await encdec.encrypt(decryptedMessage, encdec.base64ToArrayBuffer(uiPublicKey));
             let date = new Date();
             let messageObj = {};
-            messageObj[date.getTime()] = messageEncryptedUsingUIPublicKey;
+            messageObj[date.getTime(),messageEncryptedUsingUIPublicKey];
             if (messages["received"][sender]) {
                 messages["received"][sender].push(messageObj);
             } else {
