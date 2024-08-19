@@ -50,6 +50,16 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+function base64ToUint8Array(base64) {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+}
+
 async function encrypt(text,publicKeyArg) {
     const encoder = new TextEncoder();
     const encodedMessage = encoder.encode(text);
@@ -112,6 +122,64 @@ function getCommunicationKeys() {
     return communicationKeys;
 }
 
+async function generateSyncKey(password, salt) {
+    const keyMaterial = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(password),
+        { name: 'PBKDF2' },
+        false,
+        ['deriveKey']
+    );
+
+    return crypto.subtle.deriveKey(
+        {
+            name: 'PBKDF2',
+            salt: salt,
+            iterations: 100000,
+            hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt']
+    );
+}
+
+async function encryptUsingPassword(text, password) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await generateSyncKey(password, salt);
+    const encodedText = new TextEncoder().encode(text);
+    const encryptedContent = await crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        encodedText
+    );
+    const encryptedArray = new Uint8Array([...salt, ...iv, ...new Uint8Array(encryptedContent)]);
+    return arrayBufferToBase64(encryptedArray);
+}
+
+async function decryptUsingPassword(encryptedText, password) {
+    const encryptedArray = base64ToUint8Array(encryptedText);
+    const salt = encryptedArray.slice(0, 16);
+    const iv = encryptedArray.slice(16, 28);
+    const encryptedContent = encryptedArray.slice(28);
+    const key = await generateSyncKey(password, salt);
+    const decryptedContent = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        encryptedContent
+    );
+    return new TextDecoder().decode(decryptedContent);
+}
+
+async function testSymmetricEncryption() {
+    let val = await decryptUsingPassword(await encryptUsingPassword("sarpdand","babla"),"babla");
+    console.log("testSymmetricEncryption",val);
+}
+
+testSymmetricEncryption();
+
 if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     generateKeyPair(communicationKeys);
     module.exports = {
@@ -120,6 +188,8 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
         getKeys,
         deletePublicKey,
         getCommunicationKeys,
-        base64ToArrayBuffer
+        base64ToArrayBuffer,
+        encryptUsingPassword,
+        decryptUsingPassword
     };
 }
