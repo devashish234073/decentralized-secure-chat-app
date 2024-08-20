@@ -1,4 +1,10 @@
 {
+    "Parameters": {
+        "PasswordForKeyExchange": {
+            "Type": "String",
+            "Description": "Initial public key exchage will happen using this password"
+        }
+    },
     "Resources": {
         "cfVPC": {
             "Type": "AWS::EC2::VPC",
@@ -74,7 +80,7 @@
                                 "cd decentralized-secure-chat-app\n",
                                 "openssl req -nodes -new -x509 -keyout server.key -out server.cert -days 365 -subj \"/C=US/ST=State/L=City/O=Organization/OU=OrgUnit/CN=example.com\"\n",
                                 "npm install\n",
-                                "node server.js&\n",
+                                "node server.js 9999 ${PasswordForKeyExchange}&\n",
                                 "cd ..\n",
                                 "cat <<EOF > /var/www/html/index.html\n",
                                 "<!DOCTYPE html>\n",
