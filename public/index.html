@@ -164,7 +164,6 @@
     </div>
     <div id="myModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
             <p id="passLabel">Please password to exchange key:</p>
             <input type="password" id="password">
             <button id="popupBtn" onclick="beginKeyExchange()">OK</button>
@@ -184,18 +183,19 @@
         function closeModal() {
             $("#myModal").style.display = "none";
         }
-        //openModal();
-        function beginKeyExchange() {
+        async function beginKeyExchange() {
             let password = $("#password").value.trim();
-            console.log("password",password);
             if (password == "") {
                 let label = $("#passLabel").innerText;
                 console.log(label);
                 if (label.indexOf("Password is required.") == -1) {
                     $("#passLabel").innerText = "Password is required.";
                 } else {
-                    $("#passLabel").innerText = label + " Aise nhi maanoge tum.";
+                    $("#passLabel").innerText = label + " I repeat password is required.";
                 }
+            } else {
+                closeModal();
+                getPublicKeyFromServer(await encryptUsingPassword(keys.publicKeyBase64,password),password);
             }
         }
         let msgType = {};
@@ -233,6 +233,27 @@
             }
         };
         recipients.addEventListener("change", onRecipientChange);
+
+        async function checkIfServerHasAPasswordForExchangingKey() {
+            try {
+                const response = await fetch('/hasPasswordForKeyExchange', {
+                    method: 'GET'
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(result.message);
+                    if (result.hasPassword) {
+                        openModal();//get password from UI using the Modal
+                    } else {
+                        getPublicKeyFromServer(keys.publicKeyBase64,null);
+                    }
+                } else {
+                    alert('Failed to check if server has a password. Check server for logs.');
+                }
+            } catch (error) {
+                console.log("checkIfServerHasAPasswordForExchangingKey Error",error);
+            }
+        }
 
         async function send() {
             const message = $("#message").value;
@@ -325,12 +346,18 @@
                     onRecipientChange();
                 } else {
                     console.log('Failed to get all the messages.');
-                    window.location.reload();
+                    clearData();
                 }
             } catch (error) {
                 console.log('There was an error processing your request. Please try again later.', error);
-                window.location.reload();
+                clearData();
             }
+        }
+
+        function clearData() {
+            sessionStorage.removeItem("publicKeyFromServer");
+            sessionStorage.removeItem("cachedUIKeys");
+            window.location.reload();
         }
 
         async function encryptMessage() {
@@ -343,7 +370,7 @@
         }
 
         let publicKeyFromServer = null;
-        async function getPublicKeyFromServer(uiPublicKey) {
+        async function getPublicKeyFromServer(uiPublicKey,uiPassword) {
             try {
                 const payload = {
                     "uiPublicKey": uiPublicKey
@@ -358,7 +385,11 @@
                 if (response.ok) {
                     const result = await response.json();
                     if (result.publicKey != "") {
-                        sessionStorage.setItem("publicKeyFromServer", result.publicKey);
+                        let srvrPubKey = result.publicKey;
+                        if(uiPassword) {
+                            srvrPubKey = await decryptUsingPassword(srvrPubKey, uiPassword);
+                        }
+                        sessionStorage.setItem("publicKeyFromServer", srvrPubKey);
                     }
                     publicKeyFromServer = sessionStorage.getItem("publicKeyFromServer");
                     if (publicKeyFromServer == null) {
@@ -406,7 +437,7 @@
         }, 100);
         async function init() {
             console.log("enc-dec", await decrypt(await encrypt("Test Enc Dec From UI", keys.publicKey), keys.privateKey));
-            getPublicKeyFromServer(keys.publicKeyBase64);
+            checkIfServerHasAPasswordForExchangingKey();
         }
     </script>
 </body>

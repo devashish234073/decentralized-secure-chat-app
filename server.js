@@ -22,6 +22,11 @@ if (process.argv[2]) {
     PORT = parseInt(process.argv[2]);
 }
 
+let password = null;
+if (process.argv[3]) {
+    password = process.argv[3];
+}
+
 app.use(cors(corsOptions));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
@@ -58,14 +63,28 @@ async function init() {
     }
 }
 
+app.get("/hasPasswordForKeyExchange",(req,res)=>{
+    res.end(`{"hasPassword":${password?true:false}}`);
+});
+
 let uiPublicKey = null;
-app.post('/exchangePublicKey', (req, res) => {
+app.post('/exchangePublicKey', async (req, res) => {
     let publicKeyRef = "";
     if (!uiPublicKey) {
-        uiPublicKey = req.body.uiPublicKey;
-        log("uiPublicKey", uiPublicKey);
-        publicKeyRef = keys.publicKeyBase64;
-        encdec.deletePublicKey();
+        try {
+            uiPublicKey = req.body.uiPublicKey;
+            log("uiPublicKey", uiPublicKey);
+            publicKeyRef = keys.publicKeyBase64;
+            if(password) {
+                uiPublicKey = await encdec.decryptUsingPassword(uiPublicKey,password);
+                publicKeyRef = await encdec.encryptUsingPassword(publicKeyRef,password);
+                console.log("ui publickey decrypted using password, server public key encrypted using password.");
+                password = null;//its only required in the first call
+            }
+            encdec.deletePublicKey();
+        } catch(error) {
+            console.log("error while key exchange",error);
+        }
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(`{"publicKey":"${publicKeyRef}"}`);
