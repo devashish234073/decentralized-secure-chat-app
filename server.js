@@ -24,6 +24,7 @@ if (process.argv[2]) {
 
 let password = null;
 if (process.argv[3]) {
+    console.log("password argument is present");
     password = process.argv[3];
 }
 
